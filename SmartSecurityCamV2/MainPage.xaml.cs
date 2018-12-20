@@ -1,20 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.Devices.Gpio;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
-using Windows.UI.Xaml;
+using Windows.Graphics.Imaging;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Controls.Primitives;
-using Windows.UI.Xaml.Data;
-using Windows.UI.Xaml.Input;
-using Windows.UI.Xaml.Media;
-using Windows.UI.Xaml.Navigation;
-
-// The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
+using Windows.UI.Xaml.Media.Imaging;
 
 namespace SmartSecurityCamV2
 {
@@ -23,37 +10,50 @@ namespace SmartSecurityCamV2
     /// </summary>
     public sealed partial class MainPage : Page
     {
-        private const int SENSOR_PIN = 4;
-        private GpioPin sensorPin;
+        private MotionSensor motionSensor;
+        private Camera camera;
 
         public MainPage()
         {
             this.InitializeComponent();
-            InitGpio();
-            Unloaded += MainPageUnloaded;
+            motionSensor = new MotionSensor();
+            camera = new Camera();
+            camera.PictureTaken += Camera_PictureTaken;
+            motionSensor.Triggered += MotionSensor_Triggered;
+            Unloaded += MainPage_Unloaded;
         }
 
-        private void InitGpio()
+        private async void MotionSensor_Triggered()
         {
-            var gpio = GpioController.GetDefault();
-            sensorPin = gpio.OpenPin(SENSOR_PIN);   
-            sensorPin.SetDriveMode(GpioPinDriveMode.Input);
-            sensorPin.ValueChanged += SensorPinValueChanged;
-        }
-
-        private void SensorPinValueChanged(GpioPin sender, GpioPinValueChangedEventArgs arg)
-        {
-            bool isOn = (arg.Edge == GpioPinEdge.RisingEdge);
-
-            if (isOn)
+            if (!Camera.IsBusy)
             {
-                // take picture
+                await camera.TakePicture();
             }
         }
 
-        private void MainPageUnloaded(object sender, object arg)
+
+        private async void Camera_PictureTaken(object sender, Camera.PictureTakenEventArgs arg)
         {
-            sensorPin.Dispose();
+            var softwareBitmap = arg.Bitmap;
+
+            if (softwareBitmap.BitmapPixelFormat != BitmapPixelFormat.Bgra8 ||
+                    softwareBitmap.BitmapAlphaMode == BitmapAlphaMode.Straight)
+            {
+                softwareBitmap = SoftwareBitmap.Convert(softwareBitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
+            }
+
+            await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
+            {
+                var source = new SoftwareBitmapSource();
+                await source.SetBitmapAsync(softwareBitmap);
+                ImageControl.Source = source;
+            });
+        }
+        
+        private void MainPage_Unloaded(object sender, object arg)
+        {
+            motionSensor.Dispose();
+            camera.Dispose();
         }
     }
 }
