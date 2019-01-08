@@ -42,7 +42,9 @@ namespace SmartSecurityCamV2
 
             await lowLagCapture.FinishAsync();
 
-            PictureTakenEventArgs arg = new PictureTakenEventArgs(softwareBitmap);
+            var time = DateTime.Now;
+
+            PictureTakenEventArgs arg = new PictureTakenEventArgs(softwareBitmap, time);
             OnPictureTaken(arg);
 
             IsBusy = false;
@@ -57,11 +59,14 @@ namespace SmartSecurityCamV2
 
         public class PictureTakenEventArgs : EventArgs
         {
-            public PictureTakenEventArgs(SoftwareBitmap bitmap)
+            public PictureTakenEventArgs(SoftwareBitmap bitmap, DateTime time)
             {
                 Bitmap = bitmap;
+                Time = time;
             }
             public SoftwareBitmap Bitmap { get; set; }
+            public DateTime Time { get; set; }
+            
         }
 
         private void MediaCapture_Failed(object sender, object arg)

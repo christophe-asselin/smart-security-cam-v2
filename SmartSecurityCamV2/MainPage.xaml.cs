@@ -12,12 +12,14 @@ namespace SmartSecurityCamV2
     {
         private MotionSensor motionSensor;
         private Camera camera;
+        private FaceRecognition faceRecognition;
 
         public MainPage()
         {
             this.InitializeComponent();
             motionSensor = new MotionSensor();
             camera = new Camera();
+            faceRecognition = new FaceRecognition();
             camera.PictureTaken += Camera_PictureTaken;
             motionSensor.Triggered += MotionSensor_Triggered;
             Unloaded += MainPage_Unloaded;
@@ -36,18 +38,25 @@ namespace SmartSecurityCamV2
         {
             var softwareBitmap = arg.Bitmap;
 
-            if (softwareBitmap.BitmapPixelFormat != BitmapPixelFormat.Bgra8 ||
-                    softwareBitmap.BitmapAlphaMode == BitmapAlphaMode.Straight)
-            {
-                softwareBitmap = SoftwareBitmap.Convert(softwareBitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
-            }
+            string response = await faceRecognition.MakeAnalysisRequestAsync(arg.Bitmap);
 
-            await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
+            if (response != "[]")
             {
-                var source = new SoftwareBitmapSource();
-                await source.SetBitmapAsync(softwareBitmap);
-                ImageControl.Source = source;
-            });
+                await CloudStorage.SendImageAsync(softwareBitmap, arg.Time);
+
+                if (softwareBitmap.BitmapPixelFormat != BitmapPixelFormat.Bgra8 ||
+                        softwareBitmap.BitmapAlphaMode == BitmapAlphaMode.Straight)
+                {
+                    softwareBitmap = SoftwareBitmap.Convert(softwareBitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
+                }
+
+                await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
+                {
+                    var source = new SoftwareBitmapSource();
+                    await source.SetBitmapAsync(softwareBitmap);
+                    ImageControl.Source = source;
+                });
+            }
         }
         
         private void MainPage_Unloaded(object sender, object arg)

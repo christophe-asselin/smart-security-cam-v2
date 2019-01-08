@@ -13,7 +13,7 @@
             <TextBlock HorizontalAlignment="Center" FontSize="64">
                 Smile! You're being watched.
             </TextBlock>
-            <Image x:Name="ImageControl" Height="720" Width="1280"/>
+            <Image x:Name="ImageControl" Height="720" Width="1280" FocusVisualPrimaryBrush="Black" HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </StackPanel>
     </Grid>
 
